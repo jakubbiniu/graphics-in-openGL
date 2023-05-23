@@ -35,6 +35,8 @@ Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 float speed_x=0;
 float speed_y=0;
+float speed_leg = 0;
+float speed_foot = 0;
 float aspectRatio=1;
 
 ShaderProgram *sp;
@@ -43,21 +45,12 @@ GLuint tex0;
 GLuint tex1; //uchwyt na teksturę
 
 
-
 //Odkomentuj, żeby rysować kostkę
 float* vertices = myCubeVertices;
 float* normals = myCubeNormals;
 float* texCoords = myCubeTexCoords;
 float* colors = myCubeColors;
 int vertexCount = myCubeVertexCount;
-
-
-//Odkomentuj, żeby rysować czajnik
-//float* vertices = myTeapotVertices;
-//float* normals = myTeapotVertexNormals;
-//float* texCoords = myTeapotTexCoords;
-//float* colors = myTeapotColors;
-//int vertexCount = myTeapotVertexCount;
 
 
 GLuint readTexture(const char* filename) {
@@ -89,14 +82,30 @@ void keyCallback(GLFWwindow* window,int key,int scancode,int action,int mods) {
     if (action==GLFW_PRESS) {
         if (key==GLFW_KEY_LEFT) speed_x=-PI/2;
         if (key==GLFW_KEY_RIGHT) speed_x=PI/2;
-        if (key==GLFW_KEY_UP) speed_y=PI/2;
-        if (key==GLFW_KEY_DOWN) speed_y=-PI/2;
+		if (key == GLFW_KEY_UP) {
+			speed_y = PI / 2;
+			speed_leg = -PI / 4;
+			speed_foot = PI / 4;
+		}
+		if (key == GLFW_KEY_DOWN) {
+			speed_y = -PI / 2;
+			speed_leg = PI / 4;
+			speed_foot = -PI / 4;
+		}
     }
     if (action==GLFW_RELEASE) {
         if (key==GLFW_KEY_LEFT) speed_x=0;
         if (key==GLFW_KEY_RIGHT) speed_x=0;
-        if (key==GLFW_KEY_UP) speed_y=0;
-        if (key==GLFW_KEY_DOWN) speed_y=0;
+		if (key == GLFW_KEY_UP) {
+			speed_y = 0;
+			speed_foot = 0;
+			speed_leg = 0;
+		}
+		if (key == GLFW_KEY_DOWN) {
+			speed_y = 0;
+			speed_foot = 0;
+			speed_leg = 0;
+		}
     }
 }
 
@@ -123,7 +132,6 @@ void initOpenGLProgram(GLFWwindow* window) {
 //Zwolnienie zasobów zajętych przez program
 void freeOpenGLProgram(GLFWwindow* window) {
     //************Tutaj umieszczaj kod, który należy wykonać po zakończeniu pętli głównej************
-
     delete sp;
 }
 
@@ -131,7 +139,7 @@ void freeOpenGLProgram(GLFWwindow* window) {
 
 
 //Procedura rysująca zawartość sceny
-void drawScene(GLFWwindow* window,float angle_x,float angle_y) {
+void drawScene(GLFWwindow* window,float angle_x,float angle_y,float angle_leg,float angle_foot) {
 	//************Tutaj umieszczaj kod rysujący obraz******************l
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -140,8 +148,8 @@ void drawScene(GLFWwindow* window,float angle_x,float angle_y) {
          glm::vec3(0.0f,0.0f,0.0f),
          glm::vec3(0.0f,1.0f,0.0f)); //Wylicz macierz widoku
 
-    //glm::mat4 P=glm::perspective(50.0f*PI/180.0f, aspectRatio, 0.01f, 50.0f); //Wylicz macierz rzutowania
-	glm::mat4 P = glm::perspective(glm::radians(50.0f), 1.0f, 1.0f, 50.0f);
+    glm::mat4 P=glm::perspective(50.0f*PI/180.0f, aspectRatio, 0.01f, 50.0f); //Wylicz macierz rzutowania
+	//glm::mat4 P = glm::perspective(glm::radians(50.0f), 1.0f, 1.0f, 50.0f);
 	sp->use();//Aktywacja programu cieniującego
 	glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
 	glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(V));
@@ -151,37 +159,59 @@ void drawScene(GLFWwindow* window,float angle_x,float angle_y) {
 	//Floor = glm::scale(Floor, glm::vec3(100.0f, 100.0f, 1.0f));
 
     glm::mat4 M=glm::mat4(1.0f);
-	M = glm::translate(M, glm::vec3(1.0f, 2.0f, 1.0f));
-	M=glm::rotate(M,angle_y,glm::vec3(1.0f,0.0f,0.0f)); //Wylicz macierz modelu
-	M=glm::rotate(M,angle_x,glm::vec3(0.0f,1.0f,0.0f)); //Wylicz macierz modelu
-	//M = glm::scale(M, glm::vec3(1.0f, 3.0f, 1.0f));
+	//M=glm::rotate(M,angle_y,glm::vec3(1.0f,0.0f,0.0f)); //Wylicz macierz modelu
+	M = glm::rotate(M,angle_x,glm::vec3(0.0f,1.0f,0.0f)); //Wylicz macierz modelu
+	M = glm::translate(M, glm::vec3(0.0f, 0.0f, angle_y));
 
+	glm::mat4 Head = M;
+	Head = glm::translate(Head, glm::vec3(0.0f, 5.0f, 0.0f));
+
+	glm::mat4 LeftLeg1 = M;
+	LeftLeg1 = glm::rotate(LeftLeg1, angle_leg,glm::vec3(1.0f,0.0f,0.0f));
+	LeftLeg1 = glm::translate(LeftLeg1, glm::vec3(-0.75f,-5.7f,0.0f));
+
+	glm::mat4 RightLeg1 = M;
+	RightLeg1 = glm::rotate(RightLeg1, -angle_leg, glm::vec3(1.0f, 0.0f, 0.0f));
+	RightLeg1 = glm::translate(RightLeg1, glm::vec3(0.75f, -5.7f, 0.0f));
+
+	glm::mat4 LeftFoot = LeftLeg1;
+	LeftFoot = glm::rotate(LeftFoot, angle_foot, glm::vec3(1.0f, 0.0f, 0.0f));
+	LeftFoot = glm::translate(LeftFoot, glm::vec3(0.0f,-2.5f,0.6f));
+
+	glm::mat4 RightFoot = RightLeg1;
+	RightFoot = glm::rotate(RightFoot, -angle_foot, glm::vec3(1.0f, 0.0f, 0.0f));
+	RightFoot = glm::translate(RightFoot, glm::vec3(0.0f, -2.5f, 0.6f));
+
+	
+	M = glm::scale(M, glm::vec3(2.0f, 4.0f, 1.5f));
+	//Head = glm::scale(Head, glm::vec3(0.5f, 0.2f, 1.0f));
+	LeftLeg1 = glm::scale(LeftLeg1, glm::vec3(0.6f, 2.0f, 1.0f));
+	RightLeg1 = glm::scale(RightLeg1, glm::vec3(0.6f, 2.0f, 1.0f));
+	LeftFoot = glm::scale(LeftFoot, glm::vec3(0.6f, 0.7f, 1.7f));
+	RightFoot = glm::scale(RightFoot, glm::vec3(0.6f, 0.7f, 1.7f));
+	
+	glm::mat4 array[20] = {M,Head,LeftLeg1,RightLeg1,LeftFoot,RightFoot};
+
+	for (int i = 0; i <= 5; i++) {
+		glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(array[i]));
+		glUniform4f(sp->u("lp"), 0, 0, -6, 1);
+		glUniform1i(sp->u("textureMap0"), 0); //drawScene
+		glUniform1i(sp->u("textureMap1"), 1);
+		glEnableVertexAttribArray(sp->a("vertex"));  //Włącz przesyłanie danych do atrybutu vertex
+		glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, vertices); //Wskaż tablicę z danymi dla atrybutu vertex
+		glEnableVertexAttribArray(sp->a("color"));  //Włącz przesyłanie danych do atrybutu vertex
+		glVertexAttribPointer(sp->a("color"), 4, GL_FLOAT, false, 0, colors); //Wskaż tablicę z danymi dla atrybutu vertex
+		glEnableVertexAttribArray(sp->a("normal"));  //Włącz przesyłanie danych do atrybutu vertex
+		glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, normals); //Wskaż tablicę z danymi dla atrybutu vertex
+		glEnableVertexAttribArray(sp->a("texCoord0"));
+		glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, texCoords);//odpowiednia tablica
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, tex0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, tex1);
+		glDrawArrays(GL_TRIANGLES, 0, vertexCount); //Narysuj obiekt
+	}
     
-    //Przeslij parametry programu cieniującego do karty graficznej
-
-
-    glUniformMatrix4fv(sp->u("M"),1,false,glm::value_ptr(M));
-	//glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(Floor));
-	glUniform4f(sp->u("lp"), 0, 0, -6, 1);
-	glUniform1i(sp->u("textureMap0"), 0); //drawScene
-	glUniform1i(sp->u("textureMap1"), 1);
-
-    glEnableVertexAttribArray(sp->a("vertex"));  //Włącz przesyłanie danych do atrybutu vertex
-    glVertexAttribPointer(sp->a("vertex"),4,GL_FLOAT,false,0,vertices); //Wskaż tablicę z danymi dla atrybutu vertex
-	glEnableVertexAttribArray(sp->a("color"));  //Włącz przesyłanie danych do atrybutu vertex
-	glVertexAttribPointer(sp->a("color"), 4, GL_FLOAT, false, 0, colors); //Wskaż tablicę z danymi dla atrybutu vertex
-	glEnableVertexAttribArray(sp->a("normal"));  //Włącz przesyłanie danych do atrybutu vertex
-	glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, normals); //Wskaż tablicę z danymi dla atrybutu vertex
-	glEnableVertexAttribArray(sp->a("texCoord0"));
-	glVertexAttribPointer(sp->a("texCoord0"),2, GL_FLOAT, false, 0, texCoords);//odpowiednia tablica
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, tex0);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, tex1);
-
-	glDrawArrays(GL_TRIANGLES,0,vertexCount); //Narysuj obiekt
-
     glDisableVertexAttribArray(sp->a("vertex"));  //Wyłącz przesyłanie danych do atrybutu vertex
 	glDisableVertexAttribArray(sp->a("color"));  //Wyłącz przesyłanie danych do atrybutu vertex
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu vertex
@@ -202,7 +232,7 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
-	window = glfwCreateWindow(500, 500, "OpenGL", NULL, NULL);  //Utwórz okno 500x500 o tytule "OpenGL" i kontekst OpenGL.
+	window = glfwCreateWindow(1080, 1080, "OpenGL", NULL, NULL);  //Utwórz okno 500x500 o tytule "OpenGL" i kontekst OpenGL.
 
 	if (!window) //Jeżeli okna nie udało się utworzyć, to zamknij program
 	{
@@ -224,13 +254,21 @@ int main(void)
 	//Główna pętla
 	float angle_x=0; //Aktualny kąt obrotu obiektu
 	float angle_y=0; //Aktualny kąt obrotu obiektu
+	float angle_leg = 0;
+	float angle_foot = 0;
+	float x = 1;
 	glfwSetTime(0); //Zeruj timer
 	while (!glfwWindowShouldClose(window)) //Tak długo jak okno nie powinno zostać zamknięte
 	{
         angle_x+=speed_x*glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
         angle_y+=speed_y*glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
+		angle_leg += x*speed_leg * glfwGetTime();
+		angle_foot += x*speed_foot * glfwGetTime();
+		if (angle_leg >= PI / 6 || angle_leg <= -PI/6) {
+			x *= -1;
+		}
         glfwSetTime(0); //Zeruj timer
-		drawScene(window,angle_x,angle_y); //Wykonaj procedurę rysującą
+		drawScene(window,angle_x,angle_y,angle_leg,angle_foot); //Wykonaj procedurę rysującą
 		glfwPollEvents(); //Wykonaj procedury callback w zalezności od zdarzeń jakie zaszły.
 	}
 
