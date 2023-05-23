@@ -43,6 +43,8 @@ ShaderProgram *sp;
 
 GLuint tex0;
 GLuint tex1; //uchwyt na teksturę
+GLuint tex2;
+GLuint tex3;
 
 
 //Odkomentuj, żeby rysować kostkę
@@ -125,7 +127,9 @@ void initOpenGLProgram(GLFWwindow* window) {
 
 	sp=new ShaderProgram("v_simplest.glsl",NULL,"f_simplest.glsl");
 	tex0 = readTexture("metal.png");
-	tex1 = readTexture("sky.png");
+	tex1 = readTexture("metal_spec.png");
+	tex2 = readTexture("grass.png");
+	tex3 = readTexture("dirt.png");
 }
 
 
@@ -155,8 +159,10 @@ void drawScene(GLFWwindow* window,float angle_x,float angle_y,float angle_leg,fl
 	glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(V));
 	
 
-	//glm::mat4 Floor = glm::mat4(1.0f);
-	//Floor = glm::scale(Floor, glm::vec3(100.0f, 100.0f, 1.0f));
+	glm::mat4 Floor = glm::mat4(1.0f);
+	Floor = glm::translate(Floor, glm::vec3(0.0f, -10.0f, 0.0f));
+	Floor = glm::scale(Floor, glm::vec3(100.0f, 1.0f, 100.0f));
+	
 
     glm::mat4 M=glm::mat4(1.0f);
 	//M=glm::rotate(M,angle_y,glm::vec3(1.0f,0.0f,0.0f)); //Wylicz macierz modelu
@@ -211,7 +217,26 @@ void drawScene(GLFWwindow* window,float angle_x,float angle_y,float angle_leg,fl
 		glBindTexture(GL_TEXTURE_2D, tex1);
 		glDrawArrays(GL_TRIANGLES, 0, vertexCount); //Narysuj obiekt
 	}
+	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(Floor));
+	glUniform4f(sp->u("lp"), 0, 0, -6, 1);
+	glUniform1i(sp->u("textureMap0"), 0); //drawScene
+	glUniform1i(sp->u("textureMap1"), 1);
+	glEnableVertexAttribArray(sp->a("vertex"));  //Włącz przesyłanie danych do atrybutu vertex
+	glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, vertices); //Wskaż tablicę z danymi dla atrybutu vertex
+	glEnableVertexAttribArray(sp->a("color"));  //Włącz przesyłanie danych do atrybutu vertex
+	glVertexAttribPointer(sp->a("color"), 4, GL_FLOAT, false, 0, colors); //Wskaż tablicę z danymi dla atrybutu vertex
+	glEnableVertexAttribArray(sp->a("normal"));  //Włącz przesyłanie danych do atrybutu vertex
+	glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, normals); //Wskaż tablicę z danymi dla atrybutu vertex
+	glEnableVertexAttribArray(sp->a("texCoord0"));
+	glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, texCoords);//odpowiednia tablica
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, tex2);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, tex3);
+	glDrawArrays(GL_TRIANGLES, 0, vertexCount); //Narysuj obiekt
     
+	
+
     glDisableVertexAttribArray(sp->a("vertex"));  //Wyłącz przesyłanie danych do atrybutu vertex
 	glDisableVertexAttribArray(sp->a("color"));  //Wyłącz przesyłanie danych do atrybutu vertex
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu vertex
@@ -264,7 +289,7 @@ int main(void)
         angle_y+=speed_y*glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
 		angle_leg += x*speed_leg * glfwGetTime();
 		angle_foot += x*speed_foot * glfwGetTime();
-		if (angle_leg >= PI / 6 || angle_leg <= -PI/6) {
+		if (angle_leg >= PI / 8 || angle_leg <= -PI/8) {
 			x *= -1;
 		}
         glfwSetTime(0); //Zeruj timer
