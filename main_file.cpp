@@ -27,17 +27,27 @@ Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
 #include "constants.h"
 #include "lodepng.h"
 #include "shaderprogram.h"
 #include "myCube.h"
 #include "myTeapot.h"
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 float speed_x = 0;
 float speed_z = 0;
 float speed_leg = 0;
 float speed_foot = 0;
 float aspectRatio = 1;
+
+float* vertexArray;
+float* normalArray;
+float* uvArray;
+int numVerts;
 
 ShaderProgram* sp;
 
@@ -53,8 +63,6 @@ float* normals = myCubeNormals;
 float* texCoords = myCubeTexCoords;
 float* colors = myCubeColors;
 int vertexCount = myCubeVertexCount;
-
-
 
 
 GLuint readTexture(const char* filename) {
@@ -76,11 +84,55 @@ GLuint readTexture(const char* filename) {
 	return tex;
 }
 
+void load_obj() {
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile("woman.obj", aiProcessPreset_TargetRealtime_Fast);
+
+	if (!scene) {
+		std::cout << "Blad wczytywania pliku modelu" << std::endl;
+		return;
+	}
+	else std::cout << "Pobrano model" << std::endl;
+
+	const aiMesh* mesh = scene->mMeshes[0];
+
+	numVerts = mesh->mNumFaces * 3;
+
+	vertexArray = new float[mesh->mNumFaces * 3 * 3];
+	normalArray = new float[mesh->mNumFaces * 3 * 3];
+	uvArray = new float[mesh->mNumFaces * 3 * 2];
+
+	for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+	{
+		const aiFace& face = mesh->mFaces[i];
+
+		for (int j = 0; j < 3; j++)
+		{
+			aiVector3D uv = mesh->mTextureCoords[0][face.mIndices[j]];
+			memcpy(uvArray, &uv, sizeof(float) * 2);
+			uvArray += 2;
+
+			aiVector3D normal = mesh->mNormals[face.mIndices[j]];
+			memcpy(normalArray, &normal, sizeof(float) * 3);
+			normalArray += 3;
+
+			aiVector3D pos = mesh->mVertices[face.mIndices[j]];
+			memcpy(vertexArray, &pos, sizeof(float) * 3);
+			vertexArray += 3;
+		}
+	}
+
+	uvArray -= mesh->mNumFaces * 3 * 2;
+	normalArray -= mesh->mNumFaces * 3 * 3;
+	vertexArray -= mesh->mNumFaces * 3 * 3;
+
+}
+
+
 //Procedura obsługi błędów
 void error_callback(int error, const char* description) {
 	fputs(description, stderr);
 }
-
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (action == GLFW_PRESS) {
@@ -122,7 +174,7 @@ void windowResizeCallback(GLFWwindow* window, int width, int height) {
 //Procedura inicjująca
 void initOpenGLProgram(GLFWwindow* window) {
 	//************Tutaj umieszczaj kod, który należy wykonać raz, na początku programu************
-	glClearColor(0.2, 0.2, 0.9, 1);
+	glClearColor(0.3, 0.3, 0.9, 1);
 	glEnable(GL_DEPTH_TEST);
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
 	glfwSetKeyCallback(window, keyCallback);
@@ -132,16 +184,16 @@ void initOpenGLProgram(GLFWwindow* window) {
 	tex1 = readTexture("metal_spec.png");
 	tex2 = readTexture("grass.png");
 	tex3 = readTexture("dirt.png");
-}
 
+	load_obj();
+}
 
 //Zwolnienie zasobów zajętych przez program
 void freeOpenGLProgram(GLFWwindow* window) {
 	//************Tutaj umieszczaj kod, który należy wykonać po zakończeniu pętli głównej************
+	delete[] vertexArray;
 	delete sp;
 }
-
-
 
 
 //Procedura rysująca zawartość sceny
@@ -173,7 +225,7 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 	}
 
 
-	
+
 	//glm::mat4 Floor = glm::mat4(1.0f);
 	//Floor = glm::translate(Floor, glm::vec3(0.0f, -10.0f, 0.0f));
 	//Floor = glm::scale(Floor, glm::vec3(100.0f, 1.0f, 100.0f));
@@ -181,10 +233,7 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 
 	glm::mat4 M = glm::mat4(1.0f);
 	M = glm::translate(M, glm::vec3(z * std::sin(angle_x), 0.0f, z * std::cos(angle_x))); // Translate along the local Z-axis
-
 	M = glm::rotate(M, angle_x, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around the Y-axis
-
-
 
 	glm::mat4 Head = M;
 	Head = glm::translate(Head, glm::vec3(0.0f, 5.0f, 0.0f));
@@ -220,12 +269,18 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 	RightLeg1 = glm::scale(RightLeg1, glm::vec3(0.6f, 2.0f, 1.0f));
 	LeftFoot = glm::scale(LeftFoot, glm::vec3(0.6f, 0.5f, 1.7f));
 	RightFoot = glm::scale(RightFoot, glm::vec3(0.6f, 0.5f, 1.7f));
-	LeftArm = glm::scale(LeftArm, glm::vec3(0.6f,2.0f,0.7f));
+	LeftArm = glm::scale(LeftArm, glm::vec3(0.6f, 2.0f, 0.7f));
 	RightArm = glm::scale(RightArm, glm::vec3(0.6f, 2.0f, 0.7f));
 
-	glm::mat4 array[20] = { M,Head,LeftLeg1,RightLeg1,LeftFoot,RightFoot,LeftArm,RightArm };
+	glm::mat4 array[20] = { M,LeftLeg1,RightLeg1,LeftFoot,RightFoot,LeftArm,RightArm };
 
-	for (int i = 0; i <= 7; i++) {
+
+	sp->use();//Aktywacja programu cieniującego
+	//Przeslij parametry programu cieniującego do karty graficznej
+	glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
+	glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(V));
+
+	for (int i = 0; i <= 6; i++) {
 		glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(array[i]));
 		glUniform4f(sp->u("lp"), 0, 0, -6, 1);
 		glUniform1i(sp->u("textureMap0"), 0); //drawScene
@@ -276,17 +331,35 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 
 		glDrawArrays(GL_TRIANGLES, 0, vertexCount);
 	}
-	
-	
 
-
-
+	//glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(Head));
+	//glUniform4f(sp->u("lp"), 0, 0, -6, 1);
+	//glUniform1i(sp->u("textureMap0"), 0); // drawScene
+	//glUniform1i(sp->u("textureMap1"), 1);
+	//glEnableVertexAttribArray(sp->a("vertex"));
+	//glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, vertexArray);
+	//glEnableVertexAttribArray(sp->a("color"));
+	//glVertexAttribPointer(sp->a("color"), 4, GL_FLOAT, false, 0, colors);
+	//glEnableVertexAttribArray(sp->a("normal"));
+	//glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, normalArray);
+	//glEnableVertexAttribArray(sp->a("texCoord0"));
+	//glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, uvArray);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, tex0);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D, tex1);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//glDrawArrays(GL_TRIANGLES, 0, numVerts);
 
 
 	glDisableVertexAttribArray(sp->a("vertex"));  //Wyłącz przesyłanie danych do atrybutu vertex
 	glDisableVertexAttribArray(sp->a("color"));  //Wyłącz przesyłanie danych do atrybutu vertex
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu vertex
 	glDisableVertexAttribArray(sp->a("texCoord0"));
+
 
 	glfwSwapBuffers(window); //Przerzuć tylny bufor na przedni
 }
@@ -321,6 +394,8 @@ int main(void)
 	}
 
 	initOpenGLProgram(window); //Operacje inicjujące
+
+
 
 	//Główna pętla
 	float angle_x = 0; //Aktualny kąt obrotu obiektu
