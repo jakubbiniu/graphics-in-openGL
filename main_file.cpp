@@ -281,7 +281,7 @@ void windowResizeCallback(GLFWwindow* window, int width, int height) {
 //Procedura inicjująca
 void initOpenGLProgram(GLFWwindow* window) {
 	//************Tutaj umieszczaj kod, który należy wykonać raz, na początku programu************
-	glClearColor(0.3, 0.3, 0.9, 1);
+	glClearColor(0.5, 0.5, 1, 1);
 	glEnable(GL_DEPTH_TEST);
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
 	glfwSetKeyCallback(window, keyCallback);
