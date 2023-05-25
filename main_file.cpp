@@ -42,13 +42,15 @@ float speed_x = 0;
 float speed_z = 0;
 float speed_leg = 0;
 float speed_foot = 0;
+float speed_a = 0.0001;
 float aspectRatio = 1;
 
 float* vertexArray;
 float* normalArray;
 float* uvArray;
 int numVerts;
-
+float a=0;
+float b;
 //GLuint tex;
 
 std::vector<glm::vec4> verts;
@@ -210,8 +212,16 @@ void error_callback(int error, const char* description) {
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (action == GLFW_PRESS) {
-		if (key == GLFW_KEY_LEFT) speed_x = -PI / 2;
-		if (key == GLFW_KEY_RIGHT) speed_x = PI / 2;
+		if (key == GLFW_KEY_LEFT) {
+			speed_x = PI / 2;
+			speed_leg = PI / 4;
+			
+		}
+		if (key == GLFW_KEY_RIGHT) {
+			speed_x = -PI / 2;
+			speed_leg = -PI / 4;
+			
+		}
 		if (key == GLFW_KEY_UP) {
 			speed_z = PI / 2;
 			speed_leg = -PI / 4;
@@ -222,11 +232,26 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 			speed_leg = PI / 4;
 			speed_foot = -PI / 4;
 		}
+		if (key == GLFW_KEY_D) {
+			speed_a = PI / 2;
+			
+		}
+		if (key == GLFW_KEY_A) {
+			speed_a = -PI / 2;
+			
+		}
 	}
 	if (action == GLFW_RELEASE) {
-		if (key == GLFW_KEY_LEFT) speed_x = 0;
-		if (key == GLFW_KEY_RIGHT) speed_x = 0;
+		if (key == GLFW_KEY_LEFT) {
+			speed_x = 0;
+			speed_leg = 0;
+		}
+		if (key == GLFW_KEY_RIGHT) {
+			speed_x = 0;
+			speed_leg = 0;
+		}
 		if (key == GLFW_KEY_UP) {
+			
 			speed_z = 0;
 			speed_foot = 0;
 			speed_leg = 0;
@@ -235,6 +260,14 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 			speed_z = 0;
 			speed_foot = 0;
 			speed_leg = 0;
+		}
+		if (key == GLFW_KEY_D) {
+			speed_a = 0;
+			
+		}
+		if (key == GLFW_KEY_A) {
+			speed_a = 0;
+			
 		}
 	}
 }
@@ -265,7 +298,7 @@ void initOpenGLProgram(GLFWwindow* window) {
 
 	loadModel("woman.obj");
 	loadModel1("hand.obj");
-	loadModel2("Boot1.obj");
+	loadModel2("boot1.obj");
 }
 
 //Zwolnienie zasobów zajętych przez program
@@ -277,7 +310,7 @@ void freeOpenGLProgram(GLFWwindow* window) {
 
 
 //Procedura rysująca zawartość sceny
-void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, float angle_foot) {
+void drawScene(GLFWwindow* window, float xx, float z, float angle_leg, float angle_foot) {
 	//************Tutaj umieszczaj kod rysujący obraz******************l
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -295,8 +328,8 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 
 	glm::mat4 floor[10000];
 	int k = 0;
-	for (float i = -50.0f; i < 50.0f; i += 12.0f) {
-		for (float j = -200.0f; j < 20.0f; j += 12.0f) {
+	for (float i = -70.0f; i < 80.0f; i += 12.0f) {
+		for (float j = -250.0f; j < 20.0f; j += 12.0f) {
 			floor[k] = glm::mat4(1.0f);
 			floor[k] = glm::translate(floor[k], glm::vec3(i, -10.0f, j));
 			floor[k] = glm::scale(floor[k], glm::vec3(6.0f, 0.5f, 6.0f));
@@ -305,8 +338,10 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 	}
 
 	glm::mat4 M = glm::mat4(1.0f);
-	M = glm::translate(M, glm::vec3(z * std::sin(angle_x), 0.0f, z * std::cos(angle_x))); // Translate along the local Z-axis
-	M = glm::rotate(M, angle_x, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around the Y-axis
+	
+	M = glm::translate(M, glm::vec3(xx, 0.0f, z));
+	M = glm::rotate(M, a, glm::vec3(0.0f, 1.0f, 0.0f));
+
 
 	glm::mat4 Head = M;
 	Head = glm::translate(Head, glm::vec3(0.0f, 3.5f, 0.0f));
@@ -321,13 +356,9 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 	RightLeg1 = glm::translate(RightLeg1, glm::vec3(0.75f, -5.7f, 0.0f));
 
 	glm::mat4 LeftFoot = LeftLeg1;
-	//LeftFoot = glm::rotate(LeftFoot, -PI, glm::vec3(0.0f, 1.0f, 0.0f));
-	//LeftFoot = glm::rotate(LeftFoot, angle_foot, glm::vec3(1.0f, 0.0f, 0.0f));
 	LeftFoot = glm::translate(LeftFoot, glm::vec3(-0.0f, -3.5f, 0.5f));
 
 	glm::mat4 RightFoot = RightLeg1;
-	//RightFoot = glm::rotate(RightFoot, -PI, glm::vec3(0.0f, 1.0f, 0.0f));
-	//RightFoot = glm::rotate(RightFoot, -angle_foot, glm::vec3(1.0f, 0.0f, 0.0f));
 	RightFoot = glm::translate(RightFoot, glm::vec3(-0.0f, -3.5f, 0.5f));
 
 	glm::mat4 LeftArm = M;
@@ -381,20 +412,8 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 		glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, normals); //Wskaż tablicę z danymi dla atrybutu vertex
 		glEnableVertexAttribArray(sp->a("texCoord0"));
 		glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, texCoords);//odpowiednia tablica
-		if (i == 1 || i == 2) {
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, tex5);
-		}
-		else if(i==0) {
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, tex5);
-		}
-		else {
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, tex5);
-		}
-		//glActiveTexture(GL_TEXTURE1);
-		//glBindTexture(GL_TEXTURE_2D, tex1);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, tex5);
 		glDrawArrays(GL_TRIANGLES, 0, vertexCount); //Narysuj obiekt
 		glDisableVertexAttribArray(sp->a("vertex"));  //Wyłącz przesyłanie danych do atrybutu vertex
 		glDisableVertexAttribArray(sp->a("color"));  //Wyłącz przesyłanie danych do atrybutu vertex
@@ -445,8 +464,6 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 	glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, texCoords2.data()); //Wskaż tablicę z danymi dla atrybutu vertex
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex0);
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_2D, tex1);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, indices.data()); //Narysuj obiekt
 	glDisableVertexAttribArray(sp->a("vertex"));
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu vertex
@@ -464,8 +481,6 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 	glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, texCoords21.data()); //Wskaż tablicę z danymi dla atrybutu vertex
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex6);
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_2D, tex1);
 	glDrawElements(GL_TRIANGLES, indices1.size(), GL_UNSIGNED_INT, indices1.data()); //Narysuj obiekt
 	glDisableVertexAttribArray(sp->a("vertex"));
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu vertex
@@ -483,8 +498,6 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 	glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, texCoords21.data()); //Wskaż tablicę z danymi dla atrybutu vertex
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex6);
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_2D, tex1);
 	glDrawElements(GL_TRIANGLES, indices1.size(), GL_UNSIGNED_INT, indices1.data()); //Narysuj obiekt
 	glDisableVertexAttribArray(sp->a("vertex"));
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu vertex
@@ -502,8 +515,6 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 	glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, texCoords22.data()); //Wskaż tablicę z danymi dla atrybutu vertex
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex4);
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_2D, tex1);
 	glDrawElements(GL_TRIANGLES, indices2.size(), GL_UNSIGNED_INT, indices2.data()); //Narysuj obiekt
 	glDisableVertexAttribArray(sp->a("vertex"));
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu vertex
@@ -521,8 +532,6 @@ void drawScene(GLFWwindow* window, float angle_x, float z, float angle_leg, floa
 	glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, texCoords22.data()); //Wskaż tablicę z danymi dla atrybutu vertex
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex4);
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_2D, tex1);
 	glDrawElements(GL_TRIANGLES, indices2.size(), GL_UNSIGNED_INT, indices2.data()); //Narysuj obiekt
 	glDisableVertexAttribArray(sp->a("vertex"));
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu vertex
@@ -565,15 +574,16 @@ int main(void)
 
 
 	//Główna pętla
-	float angle_x = 0; //Aktualny kąt obrotu obiektu
-	float z = 0; //Aktualny kąt obrotu obiektu
+	float xx = 0; //Aktualny kąt obrotu obiektu
+	float z = 0; 
 	float angle_leg = 0;
 	float angle_foot = 0;
 	float x = 1;
 	glfwSetTime(0); //Zeruj timer
 	while (!glfwWindowShouldClose(window)) //Tak długo jak okno nie powinno zostać zamknięte
 	{
-		angle_x += speed_x * glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
+		a += speed_a * glfwGetTime();
+		xx += speed_x * glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
 		z += speed_z * glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
 		angle_leg += x * speed_leg * glfwGetTime();
 		angle_foot += x * speed_foot * glfwGetTime();
@@ -582,7 +592,7 @@ int main(void)
 			x *= -1;
 		}
 		glfwSetTime(0); //Zeruj timer
-		drawScene(window, angle_x, z, angle_leg, angle_foot); //Wykonaj procedurę rysującą
+		drawScene(window, xx, z, angle_leg, angle_foot); //Wykonaj procedurę rysującą
 		glfwPollEvents(); //Wykonaj procedury callback w zalezności od zdarzeń jakie zaszły.
 	}
 
